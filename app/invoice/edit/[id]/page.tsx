@@ -1,167 +1,128 @@
 "use client";
 
+import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
-import { useRouter } from 'next/navigation';
-import { useSnackbar } from "notistack";
-import {
-  Invoice,
-  Item,
-  addInvoice,
-  getOrCreateInvoiceNumber,
-  resetInvoiceNumber,
-} from "@/app/db";
-import CancelIcon from "@/app/icons/CancelIcon";
-import Input from "@/app/components/Input";
-import Layout from "@/app/layout/Layout";
+import { getInvoice, updateInvoice, Invoice, Item } from "../../../db";
 import ClassicLedger from "@/app/Templates/ClassicLedger";
+import Layout from "@/app/layout/Layout";
+import CancelIcon from "@/app/icons/CancelIcon";
 
-const NewInvoice = () => {
-  const { enqueueSnackbar } = useSnackbar();
-  const router = useRouter(); 
-  const [companyName, setCompanyName] = useState<string>("");
-  const [companyAddress, setCompanyAddress] = useState<string>("");
-  const [logo, setLogo] = useState<string | null>(null);
-  const [dateIssued, setDateIssued] = useState<string>("");
-  const [paymentTerms, setPaymentTerms] = useState<string>("");
+const EditInvoice: React.FC = () => {
+  const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [items, setItems] = useState<Item[]>([
     { itemName: "", quantity: 1, rate: 0, amount: 0 },
   ]);
-  const [currency, setCurrency] = useState<string>("USD");
-  const [notes, setNotes] = useState<string>("");
-  const [billTo, setBillTo] = useState<string>("");
-  const [status, setStatus] = useState<"draft" | "pending" | "paid">("draft");
-
-  const [invoiceNumber, setInvoiceNumber] = useState<string>("");
+  const params = useParams();
+  const id = params.id;
+  const [logo, setLogo] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchInvoiceNumber = async () => {
-      try {
-        const number = await getOrCreateInvoiceNumber();
-        setInvoiceNumber(number);
-      } catch (error) {
-        console.error("Error fetching invoice number:", error);
-      }
-    };
+    if (id) {
+      const fetchInvoice = async () => {
+        const fetchedInvoice = await getInvoice(Number(id));
+        setInvoice(fetchedInvoice || null);
+      };
 
-    fetchInvoiceNumber();
-  }, []);
+      fetchInvoice();
+    }
+  }, [id]);
 
-  const [tax, setTax] = useState<number>(0);
-  const [discount, setDiscount] = useState<number>(0);
-  const [shippingFee, setShippingFee] = useState<number>(0);
-
-  const calculateSubtotal = () => {
-    return items.reduce((acc, item) => acc + item.amount, 0);
-  };
-
-  const calculateTotal = () => {
-    return calculateSubtotal() + tax + shippingFee - discount;
-  };
-
-  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setLogo(reader.result as string);
-      reader.readAsDataURL(file);
+  const handleSave = async () => {
+    if (invoice) {
+      await updateInvoice(invoice);
+      alert("Invoice updated!");
     }
   };
+
+  const handleChange = (field: keyof Invoice, value: any) => {
+    if (invoice) {
+      setInvoice({ ...invoice, [field]: value });
+    }
+  };
+
+  const calculateSubtotal = () => {
+    return invoice?.items?.reduce((acc, item) => acc + item.amount, 0) || 0;
+  };
+
+  // const handleItemChange = (
+  //   index: number,
+  //   field: keyof Item,
+  //   value: string | number
+  // ) => {
+  //   const updatedItems = invoice?.items?.map((item, i) => {
+  //     if (i === index) {
+  //       const newItem = { ...item, [field]: value };
+  //       newItem.amount = newItem.quantity * newItem.rate;
+  //       return newItem;
+  //     }
+  //     return item;
+  //   });
+  //   setItems(updatedItems);
+  // };
 
   const handleItemChange = (
     index: number,
     field: keyof Item,
     value: string | number
   ) => {
-    const updatedItems = items.map((item, i) => {
-      if (i === index) {
-        const newItem = { ...item, [field]: value };
-        newItem.amount = newItem.quantity * newItem.rate;
-        return newItem;
-      }
-      return item;
-    });
-    setItems(updatedItems);
-  };
-
-  const handleAddItem = () => {
-    setItems([...items, { itemName: "", quantity: 1, rate: 0, amount: 0 }]);
-  };
-
-  const handleDeleteItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
-  };
-
-  // const handleSave = async () => {
-  //   const invoice: Invoice = {
-  //     companyName,
-  //     companyAddress,
-  //     date: new Date().toISOString(),
-  //     logo,
-  //     dateIssued,
-  //     paymentTerms,
-  //     items,
-  //     currency,
-  //     notes,
-  //     billTo,
-  //     status,
-  //     invoiceNumber,
-  //     tax,
-  //     discount,
-  //     shippingFee,
-  //     subtotal: calculateSubtotal(),
-  //     total: calculateTotal(),
-  //   };
-
-  //   try {
-  //     await addInvoice(invoice);
-  //     alert("Invoice saved!");
-
-  //     // Reset the invoice number and update the state
-  //     const newInvoiceNumber = await resetInvoiceNumber();
-  //     setInvoiceNumber(newInvoiceNumber);
-  //   } catch (error) {
-  //     console.error("Error saving invoice:", error);
-  //     alert("Failed to save invoice. Please try again.");
-  //   }
-  // };
-
-  const handleSave = async () => {
-    const invoice: Invoice = {
-      companyName,
-      companyAddress,
-      date: new Date().toISOString(),
-      logo,
-      dateIssued,
-      paymentTerms,
-      items,
-      currency,
-      notes,
-      billTo,
-      status,
-      invoiceNumber,
-      tax,
-      discount,
-      shippingFee,
-      subtotal: calculateSubtotal(),
-      total: calculateTotal(),
-    };
-
-    try {
-      await addInvoice(invoice);
-      enqueueSnackbar("Invoice saved successfully!", { variant: "success" });
-
-      router.push(`/invoices/${invoice?.id}`);
-
-      // Reset the invoice number and update the state
-      const newInvoiceNumber = await resetInvoiceNumber();
-      setInvoiceNumber(newInvoiceNumber);
-    } catch (error) {
-      console.error("Error saving invoice:", error);
-      enqueueSnackbar("Failed to save invoice. Please try again.", {
-        variant: "error",
+    if (invoice) {
+      const updatedItems = invoice.items.map((item, i) => {
+        if (i === index) {
+          const newItem = { ...item, [field]: value };
+          newItem.amount = newItem.quantity * newItem.rate;
+          return newItem;
+        }
+        return item;
       });
+      setInvoice({ ...invoice, items: updatedItems });
     }
   };
+
+  // const handleAddItem = () => {
+  //   if (invoice) {
+  //     const newItems = [
+  //       ...invoice.items,
+  //       { itemName: "", quantity: 1, rate: 0, amount: 0 },
+  //     ];
+  //     setInvoice({ ...invoice, items: newItems });
+  //   }
+  // };
+  const handleAddItem = () => {
+    if (invoice) {
+      const newItems = [
+        ...(invoice.items || []), // Ensure items is an array
+        { itemName: "", quantity: 1, rate: 0, amount: 0 },
+      ];
+      setInvoice({ ...invoice, items: newItems });
+    }
+  };
+  
+
+  const handleDeleteItem = (index: number) => {
+    if (invoice) {
+      const newItems = invoice.items.filter((_, i) => i !== index);
+      setInvoice({ ...invoice, items: newItems });
+    }
+  };
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const newLogo = reader.result as string;
+        setLogo(newLogo);
+        if (invoice) {
+          setInvoice({ ...invoice, logo: newLogo });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  if (!invoice) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <Layout>
@@ -200,25 +161,15 @@ const NewInvoice = () => {
                 />
               </div>
             </div>
-            {/* <div>
-              <label className="mb-1.5 block text-[15px] text-gray-700">Company Name</label>
+            <div>
+              <label className="mb-1.5 block">Company Name</label>
               <input
                 type="text"
                 name="companyName"
-                className="border py-2.5 px-3 rounded w-full placeholder:text-sm"
+                className="border py-2.5 px-3 rounded w-full"
                 placeholder="Company Name"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-              />
-            </div> */}
-            <div className="w-full max-w-xs">
-              <Input
-                label="Company Name"
-                placeholder="Company Name"
-                value={companyName}
-                inputName="companyName"
-                onChange={setCompanyName}
-                type="text"
+                value={invoice?.companyName}
+                onChange={(e) => handleChange("companyName", e.target.value)}
               />
             </div>
             <div>
@@ -228,8 +179,8 @@ const NewInvoice = () => {
                 name="billTo"
                 className="border py-2.5 px-3 rounded w-full"
                 placeholder="Bill To"
-                value={billTo}
-                onChange={(e) => setBillTo(e.target.value)}
+                value={invoice?.billTo}
+                onChange={(e) => handleChange("billTo", e.target.value)}
               />
             </div>
             <div>
@@ -239,8 +190,8 @@ const NewInvoice = () => {
                 name="companyAddress"
                 className="border py-2.5 px-3 rounded w-full"
                 placeholder="Company Address"
-                value={companyAddress}
-                onChange={(e) => setCompanyAddress(e.target.value)}
+                value={invoice?.companyAddress}
+                onChange={(e) => handleChange("companyAddress", e.target.value)}
               />
             </div>
             <div>
@@ -250,8 +201,8 @@ const NewInvoice = () => {
                 name="dateIssued"
                 className="border py-2.5 px-3 rounded w-full"
                 placeholder="Date Issued"
-                value={dateIssued}
-                onChange={(e) => setDateIssued(e.target.value)}
+                value={invoice?.dateIssued}
+                onChange={(e) => handleChange("dateIssued", e.target.value)}
               />
             </div>
             <div>
@@ -261,8 +212,8 @@ const NewInvoice = () => {
                 name="paymentTerms"
                 className="border py-2.5 px-3 rounded w-full"
                 placeholder="Payment Terms"
-                value={paymentTerms}
-                onChange={(e) => setPaymentTerms(e.target.value)}
+                value={invoice?.paymentTerms}
+                onChange={(e) => handleChange("paymentTerms", e.target.value)}
               />
             </div>
             <div>
@@ -272,8 +223,8 @@ const NewInvoice = () => {
                 name="currency"
                 className="border py-2.5 px-3 rounded w-full"
                 placeholder="Currency"
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                value={invoice?.currency}
+                onChange={(e) => handleChange("currency", e.target.value)}
               />
             </div>
             <div>
@@ -281,9 +232,12 @@ const NewInvoice = () => {
               <select
                 name="status"
                 className="border py-2.5 px-3 rounded w-full"
-                value={status}
+                value={invoice?.status}
                 onChange={(e) =>
-                  setStatus(e.target.value as "draft" | "pending" | "paid")
+                  handleChange(
+                    "status",
+                    e.target.value as "draft" | "pending" | "paid"
+                  )
                 }
               >
                 <option value="draft">Draft</option>
@@ -301,7 +255,7 @@ const NewInvoice = () => {
               <span className="block sm:w-1/5">Amount</span>
               <span className="block">&nbsp;</span>
             </div>
-            {items.map((item, index) => (
+            {invoice?.items?.map((item, index) => (
               <div key={index} className="flex items-center gap-3 relative">
                 <input
                   type="text"
@@ -377,8 +331,8 @@ const NewInvoice = () => {
                 name="notes"
                 className="border py-2.5 px-3 rounded w-full"
                 placeholder="Notes/Payment Terms"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                value={invoice?.notes}
+                onChange={(e) => handleChange("notes", e.target.value)}
               />
             </div>
             <div>
@@ -390,8 +344,8 @@ const NewInvoice = () => {
                   name="tax"
                   className="border py-2.5 px-3 rounded w-full"
                   placeholder="Tax"
-                  value={tax}
-                  onChange={(e) => setTax(Number(e.target.value))}
+                  value={invoice?.tax}
+                  onChange={(e) => handleChange("tax", e.target.value)}
                 />
               </div>
               <div>
@@ -401,8 +355,8 @@ const NewInvoice = () => {
                   name="discount"
                   className="border py-2.5 px-3 rounded w-full"
                   placeholder="Discount"
-                  value={discount}
-                  onChange={(e) => setDiscount(Number(e.target.value))}
+                  value={invoice?.discount}
+                  onChange={(e) => handleChange("discount", e.target.value)}
                 />
               </div>
               <div>
@@ -412,8 +366,8 @@ const NewInvoice = () => {
                   name="shippingFee"
                   className="border py-2.5 px-3 rounded w-full"
                   placeholder="Shipping Fee"
-                  value={shippingFee}
-                  onChange={(e) => setShippingFee(Number(e.target.value))}
+                  value={invoice?.shippingFee}
+                  onChange={(e) => handleChange("shippingFee", e.target.value)}
                 />
               </div>
             </div>
@@ -430,22 +384,27 @@ const NewInvoice = () => {
             Invoice Preview
           </h1>
           <ClassicLedger
-            companyName={companyName}
-            companyAddress={companyAddress}
-            currency={currency}
-            total={calculateTotal()}
-            tax={tax}
-            shippingFee={shippingFee}
-            dateIssued={dateIssued}
-            discount={discount}
-            status={status}
+            companyName={invoice?.companyName}
+            companyAddress={invoice?.companyAddress}
+            currency={invoice?.currency}
+            tax={invoice?.tax}
+            shippingFee={invoice?.shippingFee}
+            dateIssued={invoice?.dateIssued}
+            discount={invoice?.discount}
+            status={invoice?.status}
+            logo={invoice?.logo}
+            notes={invoice?.notes}
+            paymentTerms={invoice?.paymentTerms}
+            items={invoice?.items}
+            invoiceNumber={invoice?.invoiceNumber}
+            billTo={invoice?.billTo}
             subtotal={calculateSubtotal()}
-            logo={logo}
-            notes={notes}
-            paymentTerms={paymentTerms}
-            items={items}
-            invoiceNumber={invoiceNumber}
-            billTo={billTo}
+            total={
+              calculateSubtotal() +
+              (invoice?.tax || 0) +
+              (invoice?.shippingFee || 0) -
+              (invoice?.discount || 0)
+            }
           />
         </div>
       </div>
@@ -453,4 +412,4 @@ const NewInvoice = () => {
   );
 };
 
-export default NewInvoice;
+export default EditInvoice;

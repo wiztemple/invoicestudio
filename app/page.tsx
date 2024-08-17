@@ -1,27 +1,39 @@
 import Image from "next/image";
 import Link from "next/link";
+import Layout from "./layout/Layout";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-[#EAEDF0] sm:p-24 p-5">
+    <Layout>
+      <div className="sm:p-24 flex items-center h-full">
+        <div>
+          <h1 className="text-5xl font-semibold text-[#637D5A]">
+            Seamless <span className="italic text-[#0EA654]">Invoicing</span> &{" "}
+            <span className="italic text-[#0EA654]">Quoting</span> – <br /> From
+            Draft to Delivery in Minutes!
+          </h1>
+          <h3 className="text-[#446838] py-3">
+            Get from draft to delivery without the hassle. Our platform is
+            designed to make invoicing <br />
+            and quoting as fast and seamless as possible.
+          </h3>
 
-      {/* <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div> */}
-
-      <div>
-        <Link href="/invoice/new" className="flex justify-center items-center h-[164px] w-[164px] shadow-sm bg-white rounded-[5px] text-gray-800">
-          + Create Invoice
-        </Link>
+          <div className="flex pt-8 gap-5">
+            <Link
+              href="/invoice/new"
+              className="flex justify-center items-center h-[164px] w-[200px] shadow-sm bg-white rounded-[5px] text-gray-800"
+            >
+              + Create Invoice
+            </Link>
+            <Link
+              href="/invoice/new"
+              className="flex justify-center items-center h-[164px] w-[200px] shadow-sm bg-white rounded-[5px] text-gray-800"
+            >
+              + Create Quotation
+            </Link>
+          </div>
+        </div>
       </div>
-
-    </main>
+    </Layout>
   );
 }
